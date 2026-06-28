@@ -2,6 +2,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withHousehold;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,6 +41,13 @@ class HouseholdLogicEditTest {
         assertFalse(outcome.passed());
         assertTrue(outcome.message().toLowerCase().contains("college")
                 || outcome.message().toLowerCase().contains("household"));
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        var outcome = edit.evaluate(withHousehold(2, 5));
+
+        assertEquals("Number in college cannot exceed number in household", outcome.message());
     }
 
     @Test

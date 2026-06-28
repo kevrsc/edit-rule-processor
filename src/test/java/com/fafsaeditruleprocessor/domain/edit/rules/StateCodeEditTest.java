@@ -2,6 +2,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withStateOfResidence;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,6 +40,13 @@ class StateCodeEditTest {
 
         assertFalse(outcome.passed());
         assertTrue(outcome.message().toLowerCase().contains("state"));
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        var outcome = edit.evaluate(withStateOfResidence("XX"));
+
+        assertEquals("State code must be a valid US state abbreviation", outcome.message());
     }
 
     @Test

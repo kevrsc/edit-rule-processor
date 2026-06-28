@@ -2,6 +2,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withIncome;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,6 +49,20 @@ class IncomeValidationEditTest {
         var outcome = edit.evaluate(withIncome(BigDecimal.valueOf(1000), BigDecimal.valueOf(-1)));
 
         assertFalse(outcome.passed());
+    }
+
+    @Test
+    void returnsActionableFailureMessageForNegativeStudentIncome() {
+        var outcome = edit.evaluate(withIncome(BigDecimal.valueOf(-1000), BigDecimal.valueOf(65000)));
+
+        assertEquals("Income values cannot be negative", outcome.message());
+    }
+
+    @Test
+    void returnsActionableFailureMessageForNegativeParentIncome() {
+        var outcome = edit.evaluate(withIncome(BigDecimal.valueOf(1000), BigDecimal.valueOf(-1)));
+
+        assertEquals("Income values cannot be negative", outcome.message());
     }
 
     @Test

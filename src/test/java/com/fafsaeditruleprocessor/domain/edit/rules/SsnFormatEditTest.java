@@ -2,6 +2,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withSsn;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +42,13 @@ class SsnFormatEditTest {
     void failsForWrongLengthSsn() {
         assertFalse(edit.evaluate(withSsn("12345")).passed());
         assertFalse(edit.evaluate(withSsn("1234567890")).passed());
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        var outcome = edit.evaluate(withSsn("invalid"));
+
+        assertEquals("SSN must be exactly 9 digits", outcome.message());
     }
 
     @Test

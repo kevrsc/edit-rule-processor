@@ -16,12 +16,15 @@ public class EditEngine {
     public ValidationResult validate(FafsaApplication application) {
         List<EditOutcome> outcomes = new ArrayList<>(rules.size());
         for (EditRule rule : rules) {
-            if (rule.appliesTo(application)) {
-                outcomes.add(rule.evaluate(application));
-            } else {
-                outcomes.add(EditOutcome.passed(rule.code(), rule.name(), rule.severity()));
-            }
+            outcomes.add(evaluateRule(rule, application));
         }
         return ValidationResult.fromEdits(outcomes);
+    }
+
+    private EditOutcome evaluateRule(EditRule rule, FafsaApplication application) {
+        if (!rule.appliesTo(application)) {
+            return EditOutcome.passed(rule.code(), rule.name(), rule.severity());
+        }
+        return rule.evaluate(application);
     }
 }

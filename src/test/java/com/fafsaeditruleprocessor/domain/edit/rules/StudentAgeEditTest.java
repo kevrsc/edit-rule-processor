@@ -2,6 +2,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withDateOfBirth;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,6 +48,13 @@ class StudentAgeEditTest {
 
         assertFalse(outcome.passed());
         assertTrue(outcome.message().contains("14"));
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        var outcome = edit.evaluate(withDateOfBirth(LocalDate.now().minusYears(13)));
+
+        assertEquals("Student must be at least 14 years old", outcome.message());
     }
 
     @Test

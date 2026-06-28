@@ -3,6 +3,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.independentSingleApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.withIncome;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,6 +67,24 @@ class DependentParentIncomeEditTest {
 
         assertFalse(outcome.passed());
         assertTrue(outcome.message().toLowerCase().contains("parent"));
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        FafsaApplication application =
+                withIncome(BigDecimal.valueOf(5000), null);
+        application = new FafsaApplication(
+                application.studentInfo(),
+                DependencyStatus.DEPENDENT,
+                application.maritalStatus(),
+                application.spouseInfo(),
+                application.household(),
+                application.income(),
+                application.stateOfResidence());
+
+        var outcome = edit.evaluate(application);
+
+        assertEquals("Parent income is required for dependent applicants", outcome.message());
     }
 
     @Test

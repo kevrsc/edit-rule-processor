@@ -2,10 +2,10 @@
 
 This document records design choices, trade-offs, and assumptions. 
 
-**Status**: Phases 1–3 complete (User Story 1 / MVP). Core architecture and all
-seven edit rules are implemented; `POST /api/v1/applications/validate` is live;
-automated tests pass. Phases 4–6 (invalid-sample coverage, conditional branch
-tests, HTTP 400, polish) remain open.
+**Status**: Phases 1–4 complete (User Stories 1–2). Core architecture, all seven
+edit rules, validation endpoint, collect-all-errors behavior, actionable failure
+messages, and HTTP 400 for malformed requests are implemented. Phases 5–6
+(conditional branch tests, polish) remain open.
 
 ---
 

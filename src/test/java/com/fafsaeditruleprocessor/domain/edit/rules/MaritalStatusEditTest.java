@@ -3,6 +3,7 @@ package com.fafsaeditruleprocessor.domain.edit.rules;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.marriedWithSpouseInfo;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.marriedWithoutSpouseInfo;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,6 +37,13 @@ class MaritalStatusEditTest {
 
         assertFalse(outcome.passed());
         assertTrue(outcome.message().toLowerCase().contains("spouse"));
+    }
+
+    @Test
+    void returnsActionableFailureMessage() {
+        var outcome = edit.evaluate(marriedWithoutSpouseInfo());
+
+        assertEquals("Spouse information is required for married applicants", outcome.message());
     }
 
     @Test

@@ -29,6 +29,23 @@ public final class FafsaApplicationTestFixtures {
             }
             """;
 
+    public static final String INVALID_SAMPLE_JSON =
+            """
+            {
+              "studentInfo": {
+                "firstName": "John",
+                "lastName": "Doe",
+                "ssn": "invalid",
+                "dateOfBirth": "2015-01-01"
+              },
+              "dependencyStatus": "dependent",
+              "maritalStatus": "married",
+              "household": { "numberInHousehold": 2, "numberInCollege": 5 },
+              "income": { "studentIncome": -1000 },
+              "stateOfResidence": "XX"
+            }
+            """;
+
     private FafsaApplicationTestFixtures() {
     }
 
@@ -142,5 +159,16 @@ public final class FafsaApplicationTestFixtures {
                 new Household(2, 1),
                 new Income(BigDecimal.valueOf(30000), null),
                 "TX");
+    }
+
+    public static FafsaApplication invalidMultiViolationApplication() {
+        return new FafsaApplication(
+                new StudentInfo("John", "Doe", "invalid", LocalDate.of(2015, 1, 1)),
+                DependencyStatus.DEPENDENT,
+                MaritalStatus.MARRIED,
+                null,
+                new Household(2, 5),
+                new Income(BigDecimal.valueOf(-1000), null),
+                "XX");
     }
 }
