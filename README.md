@@ -2,15 +2,47 @@
 
 ## Solution: Build, Run & Test
 
-**Current status:** Phase 1 (project setup) is complete. The service is a runnable
-Spring Boot scaffold; validation API and edit rules are not implemented yet.
+**Current status:** Phases 1–2 are complete. The project has a runnable Spring Boot
+service with domain models, an extensible edit-rule framework, API DTOs, and
+application wiring. The seven validation rules and HTTP endpoint are not
+implemented yet (Phase 3).
 
 ### What's in place
 
-- Java 25 + Spring Boot 4.1 + Gradle 9 (`./gradlew`)
+**Infrastructure (Phase 1)**
+
+- Java 25, Spring Boot 4.1, Gradle 9 (`./gradlew`)
 - Virtual threads enabled (`spring.threads.virtual.enabled=true`)
-- Spring Boot entry point: `com.fafsaeditruleprocessor.FafsaEditProcessorApplication`
-- Server port 8080 (no HTTP endpoints exposed yet)
+- Entry point: `com.fafsaeditruleprocessor.FafsaEditProcessorApplication`
+- Server port 8080
+- `.gitignore`
+
+**Domain model** (`domain/model/`)
+
+- `FafsaApplication` aggregate with `StudentInfo`, `SpouseInfo`, `Household`, `Income`
+- Status enums: `OverallStatus`, `DependencyStatus`, `MaritalStatus`
+- `ValidationResult` with overall valid/invalid derivation
+
+**Edit framework** (`domain/edit/`)
+
+- `EditRule` interface, `EditEngine` (collect-all-errors), `EditOutcome`, `EditSeverity`
+- `UsStateCodes` utility (50 states + DC)
+
+**API layer** (`api/dto/`)
+
+- Request/response DTOs matching [contracts/openapi.yaml](contracts/openapi.yaml)
+
+**Application wiring** (`application/`, `infrastructure/config/`)
+
+- `ApplicationMapper` — DTO ↔ domain mapping
+- `ValidationService` — delegates to `EditEngine`
+- `EditRuleConfig` — Spring bean wiring for `EditEngine` (no rule beans registered yet)
+
+### Not yet implemented
+
+- Seven FAFSA edit rule classes (`domain/edit/rules/`)
+- `POST /api/v1/applications/validate` controller
+- Automated tests
 
 ### Prerequisites
 

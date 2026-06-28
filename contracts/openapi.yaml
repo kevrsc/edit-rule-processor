@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: FAFSA Edit Rule Processor API
+  description: |
+    Validates FAFSA application data against seven required edit rules.
+    Returns per-edit pass/fail outcomes, error messages, and overall status.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /api/v1/applications/validate:
+    post:
+      operationId: validateApplication
+      summary: Validate a FAFSA application
+      description: |
+        Accepts application JSON, runs all applicable edit rules, and returns
+        a collect-all-errors validation result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FafsaApplicationRequest'
+            examples:
+              valid:
+                summary: Valid dependent application
+                value:
+                  studentInfo:
+                    firstName: Jane
+                    lastName: Smith
+                    ssn: "123456789"
+                    dateOfBirth: "2003-05-15"
+                  dependencyStatus: dependent
+                  maritalStatus: single
+                  household:
+                    numberInHousehold: 4
+                    numberInCollege: 1
+                  income:
+                    studentIncome: 5000
+                    parentIncome: 65000
+                  stateOfResidence: CA
+              invalid:
+                summary: Invalid application (multiple violations)
+                value:
+                  studentInfo:
+                    firstName: John
+                    lastName: Doe
+                    ssn: invalid
+                    dateOfBirth: "2015-01-01"
+                  dependencyStatus: dependent
+                  maritalStatus: married
+                  household:
+                    numberInHousehold: 2
+                    numberInCollege: 5
+                  income:
+                    studentIncome: -1000
+                  stateOfResidence: XX
+      responses:
+        '200':
+          description: Validation completed (application may be valid or invalid)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+              examples:
+                valid:
+                  summary: All edits passed
+                  value:
+                    overallStatus: VALID
+                    edits:
+                      - id: STUDENT_AGE
+                        name: Student Age
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: SSN_FORMAT
+                        name: SSN Format
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: DEPENDENT_PARENT_INCOME
+                        name: Dependent Parent Income
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: INCOME_VALIDATION
+                        name: Income Validation
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: HOUSEHOLD_LOGIC
+                        name: Household Logic
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: STATE_CODE
+                        name: State Code
+                        passed: true
+                        severity: ERROR
+                        message: null
+                      - id: MARITAL_STATUS
+                        name: Marital Status
+                        passed: true
+                        severity: ERROR
+                        message: null
+                invalid:
+                  summary: Multiple edit failures
+                  value:
+                    overallStatus: INVALID
+                    edits:
+                      - id: STUDENT_AGE
+                        name: Student Age
+                        passed: false
+                        severity: ERROR
+                        message: Student must be at least 14 years old
+                      - id: SSN_FORMAT
+                        name: SSN Format
+                        passed: false
+                        severity: ERROR
+                        message: SSN must be exactly 9 digits
+                      - id: DEPENDENT_PARENT_INCOME
+                        name: Dependent Parent Income
+                        passed: false
+                        severity: ERROR
+                        message: Parent income is required for dependent applicants
+                      - id: INCOME_VALIDATION
+                        name: Income Validation
+                        passed: false
+                        severity: ERROR
+                        message: Income values cannot be negative
+                      - id: HOUSEHOLD_LOGIC
+                        name: Household Logic
+                        passed: false
+                        severity: ERROR
+                        message: Number in college cannot exceed number in household
+                      - id: STATE_CODE
+                        name: State Code
+                        passed: false
+                        severity: ERROR
+                        message: State code must be a valid US state abbreviation
+                      - id: MARITAL_STATUS
+                        name: Marital Status
+                        passed: false
+                        severity: ERROR
+                        message: Spouse information is required for married applicants
+        '400':
+          description: Malformed request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    FafsaApplicationRequest:
+      type: object
+      required:
+        - studentInfo
+        - dependencyStatus
+        - maritalStatus
+        - household
+        - income
+        - stateOfResidence
+      properties:
+        studentInfo:
+          $ref: '#/components/schemas/StudentInfo'
+        dependencyStatus:
+          type: string
+          enum: [dependent, independent]
+        maritalStatus:
+          type: string
+          enum: [single, married]
+        spouseInfo:
+          $ref: '#/components/schemas/SpouseInfo'
+        household:
+          $ref: '#/components/schemas/Household'
+        income:
+          $ref: '#/components/schemas/Income'
+        stateOfResidence:
+          type: string
+          description: Two-letter US state abbreviation
+          example: CA
+
+    StudentInfo:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - ssn
+        - dateOfBirth
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        ssn:
+          type: string
+          description: Nine digits, no separators
+          example: "123456789"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "2003-05-15"
+
+    SpouseInfo:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        ssn:
+          type: string
+          example: "987654321"
+
+    Household:
+      type: object
+      required:
+        - numberInHousehold
+        - numberInCollege
+      properties:
+        numberInHousehold:
+          type: integer
+          minimum: 1
+        numberInCollege:
+          type: integer
+          minimum: 0
+
+    Income:
+      type: object
+      properties:
+        studentIncome:
+          type: number
+        parentIncome:
+          type: number
+
+    ValidationResponse:
+      type: object
+      required:
+        - overallStatus
+        - edits
+      properties:
+        overallStatus:
+          type: string
+          enum: [VALID, INVALID]
+        edits:
+          type: array
+          items:
+            $ref: '#/components/schemas/EditOutcome'
+
+    EditOutcome:
+      type: object
+      required:
+        - id
+        - name
+        - passed
+        - severity
+      properties:
+        id:
+          type: string
+          example: STUDENT_AGE
+        name:
+          type: string
+          example: Student Age
+        passed:
+          type: boolean
+        severity:
+          type: string
+          enum: [ERROR, WARNING]
+        message:
+          type: string
+          nullable: true
+          description: Human-readable failure reason; null when passed
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
