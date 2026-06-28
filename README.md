@@ -2,10 +2,10 @@
 
 ## Solution: Build, Run & Test
 
-**Current status:** Phases 1–2 are complete. The project has a runnable Spring Boot
-service with domain models, an extensible edit-rule framework, API DTOs, and
-application wiring. The seven validation rules and HTTP endpoint are not
-implemented yet (Phase 3).
+**Current status:** Phases 1–3 are complete (User Story 1 / MVP). The service
+accepts FAFSA application JSON over HTTP, runs seven edit rules, and returns a
+full validation audit trail. Valid sample payloads return `overallStatus: VALID`.
+All automated tests pass.
 
 ### What's in place
 
@@ -15,7 +15,7 @@ implemented yet (Phase 3).
 - Virtual threads enabled (`spring.threads.virtual.enabled=true`)
 - Entry point: `com.fafsaeditruleprocessor.FafsaEditProcessorApplication`
 - Server port 8080
-- `.gitignore`
+- `.gitignore`, `DECISIONS.md`
 
 **Domain model** (`domain/model/`)
 
@@ -28,21 +28,45 @@ implemented yet (Phase 3).
 - `EditRule` interface, `EditEngine` (collect-all-errors), `EditOutcome`, `EditSeverity`
 - `UsStateCodes` utility (50 states + DC)
 
-**API layer** (`api/dto/`)
+**Edit rules** (`domain/edit/rules/`)
 
+| Class | Code | Summary |
+|-------|------|---------|
+| `StudentAgeEdit` | `STUDENT_AGE` | Student must be at least 14 years old |
+| `SsnFormatEdit` | `SSN_FORMAT` | SSN must be exactly 9 digits |
+| `DependentParentIncomeEdit` | `DEPENDENT_PARENT_INCOME` | Parent income required when dependent |
+| `IncomeValidationEdit` | `INCOME_VALIDATION` | No negative income values |
+| `HouseholdLogicEdit` | `HOUSEHOLD_LOGIC` | College count cannot exceed household size |
+| `StateCodeEdit` | `STATE_CODE` | Valid US state or DC |
+| `MaritalStatusEdit` | `MARITAL_STATUS` | Spouse name and SSN required when married |
+
+Rules are Spring `@Component` beans auto-wired into `EditEngine` via `EditRuleConfig`.
+
+**API** (`api/`)
+
+- `POST /api/v1/applications/validate` — `ValidationController`
 - Request/response DTOs matching [contracts/openapi.yaml](contracts/openapi.yaml)
 
 **Application wiring** (`application/`, `infrastructure/config/`)
 
 - `ApplicationMapper` — DTO ↔ domain mapping
 - `ValidationService` — delegates to `EditEngine`
-- `EditRuleConfig` — Spring bean wiring for `EditEngine` (no rule beans registered yet)
+- `EditRuleConfig` — injects all `EditRule` beans into `EditEngine`
+
+**Tests** (`src/test/java/`)
+
+- Unit test per edit rule (7 classes)
+- `ValidationControllerTest` — valid-sample HTTP scenario
 
 ### Not yet implemented
 
-- Seven FAFSA edit rule classes (`domain/edit/rules/`)
-- `POST /api/v1/applications/validate` controller
-- Automated tests
+- **Phase 4 (US2):** Invalid-sample controller tests, HTTP 400 for malformed input,
+  `EditEngineTest`, enhanced failure messages
+- **Phase 5 (US3):** Conditional-rule branch tests (independent parent income skip,
+  married spouse requirements)
+- **Phase 6:** Polish — `ValidationServiceTest`, README curl catalog, manual
+  quickstart validation
+
 
 ### Prerequisites
 
@@ -73,8 +97,29 @@ Windows:
 .\gradlew.bat bootRun
 ```
 
-The application starts on `http://localhost:8080`. There is no validation
-endpoint to call yet.
+The application starts on `http://localhost:8080`.
+
+### Validate an application
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/applications/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentInfo": {
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "ssn": "123456789",
+      "dateOfBirth": "2003-05-15"
+    },
+    "dependencyStatus": "dependent",
+    "maritalStatus": "single",
+    "household": { "numberInHousehold": 4, "numberInCollege": 1 },
+    "income": { "studentIncome": 5000, "parentIncome": 65000 },
+    "stateOfResidence": "CA"
+  }'
+```
+
+**Expected:** `"overallStatus": "VALID"` with all seven edits `"passed": true`.
 
 ### Test
 
@@ -82,13 +127,16 @@ endpoint to call yet.
 ./gradlew test
 ```
 
-No test sources are present yet; the task succeeds with zero tests. After
-validation logic is added, use:
+Windows:
+
+```powershell
+.\gradlew.bat test
+```
+
+Pre-push verification:
 
 ```bash
 ./gradlew clean test
 ```
-
-for pre-push verification.
 
 ---
