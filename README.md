@@ -2,31 +2,20 @@
 
 ## Solution: Build, Run & Test
 
-**Current status:** Phases 1–3 are complete (User Story 1 / MVP). The service
-accepts FAFSA application JSON over HTTP, runs seven edit rules, and returns a
-full validation audit trail. Valid sample payloads return `overallStatus: VALID`.
-All automated tests pass.
+**Current status:** All phases complete (Phases 1–6). The service accepts FAFSA
+application JSON over HTTP, runs seven edit rules with collect-all-errors semantics,
+returns actionable violation messages, handles malformed requests with HTTP 400,
+and correctly gates conditional edits by dependency and marital status. All
+automated tests pass.
 
 ### What's in place
 
-**Infrastructure (Phase 1)**
+**Infrastructure**
 
 - Java 25, Spring Boot 4.1, Gradle 9 (`./gradlew`)
 - Virtual threads enabled (`spring.threads.virtual.enabled=true`)
 - Entry point: `com.fafsaeditruleprocessor.FafsaEditProcessorApplication`
 - Server port 8080
-- `.gitignore`, `DECISIONS.md`
-
-**Domain model** (`domain/model/`)
-
-- `FafsaApplication` aggregate with `StudentInfo`, `SpouseInfo`, `Household`, `Income`
-- Status enums: `OverallStatus`, `DependencyStatus`, `MaritalStatus`
-- `ValidationResult` with overall valid/invalid derivation
-
-**Edit framework** (`domain/edit/`)
-
-- `EditRule` interface, `EditEngine` (collect-all-errors), `EditOutcome`, `EditSeverity`
-- `UsStateCodes` utility (50 states + DC)
 
 **Edit rules** (`domain/edit/rules/`)
 
@@ -40,33 +29,16 @@ All automated tests pass.
 | `StateCodeEdit` | `STATE_CODE` | Valid US state or DC |
 | `MaritalStatusEdit` | `MARITAL_STATUS` | Spouse name and SSN required when married |
 
-Rules are Spring `@Component` beans auto-wired into `EditEngine` via `EditRuleConfig`.
+**API**
 
-**API** (`api/`)
+- `POST /api/v1/applications/validate` — see [contracts/openapi.yaml](contracts/openapi.yaml)
+- HTTP 400 for malformed JSON or missing required fields
 
-- `POST /api/v1/applications/validate` — `ValidationController`
-- Request/response DTOs matching [contracts/openapi.yaml](contracts/openapi.yaml)
+**Tests** (10 classes)
 
-**Application wiring** (`application/`, `infrastructure/config/`)
+- 7 rule unit tests, `EditEngineTest`, `ValidationControllerTest`, `ValidationServiceTest`
 
-- `ApplicationMapper` — DTO ↔ domain mapping
-- `ValidationService` — delegates to `EditEngine`
-- `EditRuleConfig` — injects all `EditRule` beans into `EditEngine`
-
-**Tests** (`src/test/java/`)
-
-- Unit test per edit rule (7 classes)
-- `ValidationControllerTest` — valid-sample HTTP scenario
-
-### Not yet implemented
-
-- **Phase 4 (US2):** Invalid-sample controller tests, HTTP 400 for malformed input,
-  `EditEngineTest`, enhanced failure messages
-- **Phase 5 (US3):** Conditional-rule branch tests (independent parent income skip,
-  married spouse requirements)
-- **Phase 6:** Polish — `ValidationServiceTest`, README curl catalog, manual
-  quickstart validation
-
+Design rationale: [DECISIONS.md](DECISIONS.md) 
 
 ### Prerequisites
 
@@ -99,7 +71,9 @@ Windows:
 
 The application starts on `http://localhost:8080`.
 
-### Validate an application
+### Manual validation scenarios
+
+#### 1. Valid application
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/applications/validate \
@@ -119,18 +93,78 @@ curl -s -X POST http://localhost:8080/api/v1/applications/validate \
   }'
 ```
 
-**Expected:** `"overallStatus": "VALID"` with all seven edits `"passed": true`.
+**Expected:** `"overallStatus": "VALID"`; all seven edits `"passed": true`.
+
+#### 2. Invalid application (collect all errors)
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/applications/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentInfo": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "ssn": "invalid",
+      "dateOfBirth": "2015-01-01"
+    },
+    "dependencyStatus": "dependent",
+    "maritalStatus": "married",
+    "household": { "numberInHousehold": 2, "numberInCollege": 5 },
+    "income": { "studentIncome": -1000 },
+    "stateOfResidence": "XX"
+  }'
+```
+
+**Expected:** `"overallStatus": "INVALID"`; seven failed edits with actionable messages.
+
+#### 3. Independent student (conditional skip)
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/applications/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentInfo": {
+      "firstName": "Alex",
+      "lastName": "Lee",
+      "ssn": "111223333",
+      "dateOfBirth": "2000-01-01"
+    },
+    "dependencyStatus": "independent",
+    "maritalStatus": "single",
+    "household": { "numberInHousehold": 1, "numberInCollege": 1 },
+    "income": { "studentIncome": 12000 },
+    "stateOfResidence": "NY"
+  }'
+```
+
+**Expected:** `DEPENDENT_PARENT_INCOME` and `MARITAL_STATUS` pass without spouse or parent income.
+
+#### 4. Married applicant (spouse required)
+
+```bash
+curl -s -X POST http://localhost:8080/api/v1/applications/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "studentInfo": {
+      "firstName": "Sam",
+      "lastName": "Taylor",
+      "ssn": "222334444",
+      "dateOfBirth": "1999-06-01"
+    },
+    "dependencyStatus": "independent",
+    "maritalStatus": "married",
+    "household": { "numberInHousehold": 2, "numberInCollege": 1 },
+    "income": { "studentIncome": 30000 },
+    "stateOfResidence": "TX"
+  }'
+```
+
+**Expected:** `MARITAL_STATUS` fails with spouse information required.
 
 ### Test
 
 ```bash
 ./gradlew test
-```
-
-Windows:
-
-```powershell
-.\gradlew.bat test
 ```
 
 Pre-push verification:

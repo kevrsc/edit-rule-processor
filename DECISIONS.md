@@ -1,10 +1,11 @@
 # Design Decisions: FAFSA Edit Rule Processor
 
-This document records design choices, trade-offs, and assumptions. 
+This document records design choices, trade-offs, and assumptions.
 
-**Status**: Phases 1–5 complete (User Stories 1–3). All seven edit rules, validation
-endpoint, collect-all-errors, actionable messages, HTTP 400, and conditional edit
-gating are implemented and tested. Phase 6 (polish) remains open.
+**Status**: All phases complete (Phases 1–6). Feature is submission-ready:
+seven edit rules, validation API, collect-all-errors, actionable messages, HTTP
+400 for malformed requests, conditional edit gating, automated tests, and manual
+quickstart scenarios verified.
 
 ---
 
@@ -30,7 +31,7 @@ validator, Drools/rules engine (over-engineered for seven static rules).
 **Decision**: Collect-all-errors — evaluate every applicable edit and return all
 outcomes in a single response.
 
-**Why**: Requiring the sample invalid application to
+**Why**: User Story 2 requires the sample invalid application to
 report all seven violations at once.
 
 **Implemented**: `EditEngine.validate()` iterates all registered rules without
@@ -70,15 +71,90 @@ supports interview extensions (advisory edits).
 
 ---
 
+## Age Calculation
+
+**Decision**: `Period.between(dateOfBirth, LocalDate.now()).getYears()`; student
+must be ≥ 14 on the validation date.
+
+**Why**: Matches spec assumption (age relative to submission date). Exactly 14 years
+today passes; under 14 fails.
+
+**Alternatives rejected**: Age at end of aid year; UTC midnight birthday rules.
+
+---
+
+## Valid US State Codes
+
+**Decision**: 50 states + DC as two-letter postal abbreviations; comparison is
+case-insensitive via `trim().toUpperCase()`.
+
+**Why**: Standard FAFSA convention per spec assumptions.
+
+**Alternatives rejected**: US territories; full state name lookup.
+
+---
+
+## SSN Validation
+
+**Decision**: Exactly nine consecutive digits (`\d{9}`); no dashes or spaces.
+
+**Why**: Assignment specifies 9 digits; README sample uses unformatted SSN.
+
+---
+
+## Conditional Field Handling
+
+**Decision**:
+
+- **Parent income**: Required when `dependencyStatus` is `DEPENDENT`; `parentIncome`
+  must be non-null (zero is valid).
+- **Spouse info**: Required when `maritalStatus` is `MARRIED`; `firstName`, `lastName`,
+  and `ssn` must all be non-blank.
+- **Independent / single**: Conditional edits pass without evaluating absent fields.
+
+**Why**: Spec User Story 3.
+
+**Implemented**: `appliesTo()` on `DependentParentIncomeEdit` and `MaritalStatusEdit`;
+`EditEngine` records pass outcomes for skipped rules.
+
+---
+
+## API Design
+
+**Decision**: `POST /api/v1/applications/validate` with JSON request/response per
+`contracts/openapi.yaml`. Malformed bodies return HTTP 400 with `ErrorResponse`.
+
+**Why**: Collect-all validation results in one round trip.
+
+**Implemented**: `ValidationController`, `ApiExceptionHandler`, Jakarta validation on
+request DTOs.
+
+**Alternatives rejected**: `PUT /applications/{id}` (no persistence); GraphQL.
+
+---
+
 ## Technology Stack
 
 **Decision**: Java 25, Spring Boot 4.1, Gradle 9.x, JUnit 5, virtual threads
 enabled (`spring.threads.virtual.enabled=true`).
 
-**Why**: Aligns with employer stack (README).
+**Why**: Aligns with employer stack (README), AGENTS.md, and constitution.
 
-**Implemented**: `./gradlew test` passes with 8 test classes (7 rule tests +
-`ValidationControllerTest`).
+**Implemented**: `./gradlew clean test` passes (10 test classes).
+
+---
+
+## Testing Strategy
+
+**Decision**:
+
+- One unit test class per `EditRule` (boundary, failure messages, conditional cases).
+- `EditEngineTest` for collect-all and skip behavior.
+- `ValidationControllerTest` for valid, invalid, conditional, malformed, and OpenAPI
+  contract shape.
+- `ValidationServiceTest` for service-layer smoke coverage.
+
+**Why**: TDD, meaningful coverage.
 
 ---
 
@@ -87,16 +163,17 @@ enabled (`spring.threads.virtual.enabled=true`).
 | Topic | Decision | Where |
 |-------|----------|-------|
 | Age calculation | `Period.between(dob, LocalDate.now()).getYears()`; must be ≥ 14 | `StudentAgeEdit` |
-| US state codes | 50 states + DC; case-insensitive via `trim().toUpperCase()` | `UsStateCodes`, `StateCodeEdit` |
-| SSN format | Exactly nine digits (`\d{9}`); null or non-matching fails | `SsnFormatEdit` |
-| Parent income | Required when `dependencyStatus` is `DEPENDENT`; `null` fails, `0` passes | `DependentParentIncomeEdit` |
-| Negative income | Any present `studentIncome` or `parentIncome` below zero fails | `IncomeValidationEdit` |
-| Household logic | `numberInCollege` must be ≤ `numberInHousehold` (equality allowed) | `HouseholdLogicEdit` |
-| Marital status | When `MARRIED`, spouse `firstName`, `lastName`, and `ssn` must all be non-blank | `MaritalStatusEdit` |
-| Conditional gating | `appliesTo()` limits evaluation; engine records pass for skipped rules | `EditEngine`, conditional rules |
+| US state codes | 50 states + DC; case-insensitive | `UsStateCodes`, `StateCodeEdit` |
+| SSN format | Exactly nine digits (`\d{9}`) | `SsnFormatEdit` |
+| Parent income | Required when `DEPENDENT`; `null` fails, `0` passes | `DependentParentIncomeEdit` |
+| Negative income | Any present income below zero fails | `IncomeValidationEdit` |
+| Household logic | `numberInCollege` ≤ `numberInHousehold` | `HouseholdLogicEdit` |
+| Marital status | Spouse name + SSN when `MARRIED` | `MaritalStatusEdit` |
+| Conditional gating | `appliesTo()` + engine pass for skipped rules | `EditEngine` |
 | API path | `POST /api/v1/applications/validate` | `ValidationController` |
-| JSON enums | Request uses lowercase (`dependent`, `single`); mapped to domain enums via `toUpperCase()` | `ApplicationMapper` |
-| Response enums | `overallStatus` and `severity` serialized as uppercase strings | `ApplicationMapper` |
+| JSON enums | Lowercase in request; uppercase in response | `ApplicationMapper` |
+| Malformed JSON | HTTP 400 `MALFORMED_REQUEST` | `ApiExceptionHandler` |
+| Validation errors | HTTP 400 `VALIDATION_ERROR` | `ApiExceptionHandler` |
 
 ---
 
@@ -113,3 +190,7 @@ enabled (`spring.threads.virtual.enabled=true`).
 | `MARITAL_STATUS` | `MaritalStatusEdit` | `MARRIED` only |
 
 ---
+
+## Time Spent
+
+_To be updated honestly before submission._

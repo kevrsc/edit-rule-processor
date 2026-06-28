@@ -122,4 +122,28 @@ class ValidationControllerTest {
                 .andExpect(jsonPath("$.edits[?(@.id == 'MARITAL_STATUS')].message")
                         .value("Spouse information is required for married applicants"));
     }
+
+    @Test
+    void responseShapeMatchesOpenApiContract() throws Exception {
+        mockMvc.perform(post("/api/v1/applications/validate")
+                        .contentType(APPLICATION_JSON)
+                        .content(VALID_SAMPLE_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").isString())
+                .andExpect(jsonPath("$.edits").isArray())
+                .andExpect(jsonPath("$.edits.length()").value(7))
+                .andExpect(jsonPath("$.edits[0].id").exists())
+                .andExpect(jsonPath("$.edits[0].name").exists())
+                .andExpect(jsonPath("$.edits[0].passed").isBoolean())
+                .andExpect(jsonPath("$.edits[0].severity").value("ERROR"))
+                .andExpect(jsonPath("$.edits[*].id").value(
+                        org.hamcrest.Matchers.containsInAnyOrder(
+                                "STUDENT_AGE",
+                                "SSN_FORMAT",
+                                "DEPENDENT_PARENT_INCOME",
+                                "INCOME_VALIDATION",
+                                "HOUSEHOLD_LOGIC",
+                                "STATE_CODE",
+                                "MARITAL_STATUS")));
+    }
 }
