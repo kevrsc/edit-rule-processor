@@ -2,10 +2,9 @@
 
 This document records design choices, trade-offs, and assumptions. 
 
-**Status**: Phases 1–4 complete (User Stories 1–2). Core architecture, all seven
-edit rules, validation endpoint, collect-all-errors behavior, actionable failure
-messages, and HTTP 400 for malformed requests are implemented. Phases 5–6
-(conditional branch tests, polish) remain open.
+**Status**: Phases 1–5 complete (User Stories 1–3). All seven edit rules, validation
+endpoint, collect-all-errors, actionable messages, HTTP 400, and conditional edit
+gating are implemented and tested. Phase 6 (polish) remains open.
 
 ---
 

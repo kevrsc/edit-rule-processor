@@ -1,6 +1,8 @@
 package com.fafsaeditruleprocessor.api;
 
+import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.INDEPENDENT_SINGLE_SAMPLE_JSON;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.INVALID_SAMPLE_JSON;
+import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.MARRIED_WITHOUT_SPOUSE_SAMPLE_JSON;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.VALID_SAMPLE_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -95,5 +97,29 @@ class ValidationControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void independentSingleSkipsParentIncomeAndMaritalStatusEdits() throws Exception {
+        mockMvc.perform(post("/api/v1/applications/validate")
+                        .contentType(APPLICATION_JSON)
+                        .content(INDEPENDENT_SINGLE_SAMPLE_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("VALID"))
+                .andExpect(jsonPath("$.edits[?(@.id == 'DEPENDENT_PARENT_INCOME')].passed")
+                        .value(true))
+                .andExpect(jsonPath("$.edits[?(@.id == 'MARITAL_STATUS')].passed").value(true));
+    }
+
+    @Test
+    void marriedWithoutSpouseFailsMaritalStatusEdit() throws Exception {
+        mockMvc.perform(post("/api/v1/applications/validate")
+                        .contentType(APPLICATION_JSON)
+                        .content(MARRIED_WITHOUT_SPOUSE_SAMPLE_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("INVALID"))
+                .andExpect(jsonPath("$.edits[?(@.id == 'MARITAL_STATUS')].passed").value(false))
+                .andExpect(jsonPath("$.edits[?(@.id == 'MARITAL_STATUS')].message")
+                        .value("Spouse information is required for married applicants"));
     }
 }

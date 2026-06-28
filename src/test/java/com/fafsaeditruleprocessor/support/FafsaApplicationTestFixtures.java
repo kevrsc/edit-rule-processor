@@ -46,6 +46,40 @@ public final class FafsaApplicationTestFixtures {
             }
             """;
 
+    public static final String INDEPENDENT_SINGLE_SAMPLE_JSON =
+            """
+            {
+              "studentInfo": {
+                "firstName": "Alex",
+                "lastName": "Lee",
+                "ssn": "111223333",
+                "dateOfBirth": "2000-01-01"
+              },
+              "dependencyStatus": "independent",
+              "maritalStatus": "single",
+              "household": { "numberInHousehold": 1, "numberInCollege": 1 },
+              "income": { "studentIncome": 12000 },
+              "stateOfResidence": "NY"
+            }
+            """;
+
+    public static final String MARRIED_WITHOUT_SPOUSE_SAMPLE_JSON =
+            """
+            {
+              "studentInfo": {
+                "firstName": "Sam",
+                "lastName": "Taylor",
+                "ssn": "222334444",
+                "dateOfBirth": "1999-06-01"
+              },
+              "dependencyStatus": "independent",
+              "maritalStatus": "married",
+              "household": { "numberInHousehold": 2, "numberInCollege": 1 },
+              "income": { "studentIncome": 30000 },
+              "stateOfResidence": "TX"
+            }
+            """;
+
     private FafsaApplicationTestFixtures() {
     }
 
