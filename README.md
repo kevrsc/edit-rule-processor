@@ -16,6 +16,7 @@ automated tests pass.
 - Virtual threads enabled (`spring.threads.virtual.enabled=true`)
 - Entry point: `com.fafsaeditruleprocessor.FafsaEditProcessorApplication`
 - Server port 8080
+- Multi-stage `Dockerfile` and `docker-compose.yml` for containerized runs
 
 **Edit rules** (`domain/edit/rules/`)
 
@@ -42,7 +43,8 @@ Design rationale: [DECISIONS.md](DECISIONS.md)
 
 ### Prerequisites
 
-- JDK 25
+- JDK 25 (local Gradle/JAR runs)
+- [Docker](https://docs.docker.com/get-docker/) (optional, for containerized runs)
 - No database or external services required
 
 ### Build
@@ -59,6 +61,8 @@ Windows:
 
 ### Run
 
+Via Gradle:
+
 ```bash
 ./gradlew bootRun
 ```
@@ -69,7 +73,37 @@ Windows:
 .\gradlew.bat bootRun
 ```
 
+Or run the packaged JAR directly (build first with `bootJar`):
+
+```bash
+java -jar build/libs/fafsa-edit-processor-0.0.1-SNAPSHOT.jar
+```
+
 The application starts on `http://localhost:8080`.
+
+### Run with Docker
+
+Build and start in the foreground:
+
+```bash
+docker compose up --build
+```
+
+Run detached:
+
+```bash
+docker compose up --build -d
+```
+
+Or build and run the image manually:
+
+```bash
+docker build -t fafsa-edit-processor:latest .
+docker run --rm -p 8080:8080 --name fafsa-edit-processor fafsa-edit-processor:latest
+```
+
+The service listens at `http://localhost:8080`. Stop a Compose stack with
+`docker compose down`. View logs with `docker compose logs -f`.
 
 ### Manual validation scenarios
 

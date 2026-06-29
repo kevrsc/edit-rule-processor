@@ -1,0 +1,7 @@
+services:
+  fafsa-edit-processor:
+    build: .
+    image: fafsa-edit-processor:latest
+    container_name: fafsa-edit-processor
+    ports:
+      - "8080:8080"
