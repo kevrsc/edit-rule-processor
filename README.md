@@ -207,10 +207,10 @@ Windows:
 .\gradlew.bat test
 ```
 
-Pre-push verification:
+Pre-push verification (tests plus coverage gate):
 
 ```bash
-./gradlew clean test
+./gradlew clean check
 ```
 
 ### Test coverage
@@ -226,6 +226,9 @@ Windows:
 ```powershell
 .\gradlew.bat test jacocoTestReport
 ```
+
+`./gradlew check` also runs `jacocoTestCoverageVerification`, which fails the
+build if branch coverage drops below **90%**.
 
 Open `build/reports/jacoco/test/html/index.html` for line and branch coverage by package and class.
 
