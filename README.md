@@ -201,10 +201,32 @@ curl -s -X POST http://localhost:8080/api/v1/applications/validate \
 ./gradlew test
 ```
 
+Windows:
+
+```powershell
+.\gradlew.bat test
+```
+
 Pre-push verification:
 
 ```bash
 ./gradlew clean test
 ```
+
+### Test coverage
+
+JaCoCo runs automatically after `test`. Generate the report with:
+
+```bash
+./gradlew test jacocoTestReport
+```
+
+Windows:
+
+```powershell
+.\gradlew.bat test jacocoTestReport
+```
+
+Open `build/reports/jacoco/test/html/index.html` for line and branch coverage by package and class.
 
 ---

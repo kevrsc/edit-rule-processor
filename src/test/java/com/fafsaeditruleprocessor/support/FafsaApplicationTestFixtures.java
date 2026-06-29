@@ -185,11 +185,15 @@ public final class FafsaApplicationTestFixtures {
     }
 
     public static FafsaApplication marriedWithSpouseInfo() {
+        return marriedWithSpouse(new SpouseInfo("Pat", "Taylor", "333445555"));
+    }
+
+    public static FafsaApplication marriedWithSpouse(SpouseInfo spouseInfo) {
         return new FafsaApplication(
                 new StudentInfo("Sam", "Taylor", "222334444", LocalDate.of(1999, 6, 1)),
                 DependencyStatus.INDEPENDENT,
                 MaritalStatus.MARRIED,
-                new SpouseInfo("Pat", "Taylor", "333445555"),
+                spouseInfo,
                 new Household(2, 1),
                 new Income(BigDecimal.valueOf(30000), null),
                 "TX");

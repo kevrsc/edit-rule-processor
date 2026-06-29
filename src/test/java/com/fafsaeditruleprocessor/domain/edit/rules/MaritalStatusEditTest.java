@@ -1,5 +1,6 @@
 package com.fafsaeditruleprocessor.domain.edit.rules;
 
+import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.marriedWithSpouse;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.marriedWithSpouseInfo;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.marriedWithoutSpouseInfo;
 import static com.fafsaeditruleprocessor.support.FafsaApplicationTestFixtures.validDependentApplication;
@@ -10,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fafsaeditruleprocessor.domain.edit.EditEngine;
 import com.fafsaeditruleprocessor.domain.edit.EditSeverity;
+import com.fafsaeditruleprocessor.domain.model.SpouseInfo;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +68,24 @@ class MaritalStatusEditTest {
         var outcome = edit.evaluate(marriedWithoutSpouseInfo());
 
         assertEquals("Spouse information is required for married applicants", outcome.message());
+    }
+
+    @Test
+    void failsWhenSpouseFirstNameIsNull() {
+        assertFalse(edit.evaluate(marriedWithSpouse(new SpouseInfo(null, "Taylor", "333445555")))
+                .passed());
+    }
+
+    @Test
+    void failsWhenSpouseLastNameIsBlank() {
+        assertFalse(edit.evaluate(marriedWithSpouse(new SpouseInfo("Pat", "   ", "333445555")))
+                .passed());
+    }
+
+    @Test
+    void failsWhenSpouseSsnIsNull() {
+        assertFalse(edit.evaluate(marriedWithSpouse(new SpouseInfo("Pat", "Taylor", null)))
+                .passed());
     }
 
     @Test
